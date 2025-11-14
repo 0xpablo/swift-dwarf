@@ -1,0 +1,29 @@
+swift-dwarf
+Copyright (c) 2025 Pablo Carcelen
+
+This product includes software developed by Pablo Carcelen.
+
+================================================================================
+Third-Party Dependencies
+================================================================================
+
+libdwarf
+--------
+Copyright: Various contributors (see libdwarf/AUTHORS)
+License: LGPL 2.1
+Source: https://github.com/davea42/libdwarf-code
+Fork with patches: https://github.com/0xpablo/libdwarf-code
+
+libdwarf is included as a Git submodule and is licensed under the GNU Lesser
+General Public License (LGPL) version 2.1. The LGPL license text can be found
+at libdwarf/src/lib/libdwarf/LGPL.txt.
+
+Modifications to libdwarf
+-------------------------
+This project uses a fork of libdwarf with the following patches:
+1. Fix for commandsizetotal calculation in Mach-O headers
+2. Increased MAX_COMMANDS_SIZE to 256KB for modern macOS binaries
+3. Added UUID support for Mach-O binaries (LC_UUID)
+
+These patches are maintained in separate branches for upstream contribution.
+All modifications to libdwarf remain under LGPL 2.1 as required.

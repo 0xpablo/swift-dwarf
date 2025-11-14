@@ -1,0 +1,4 @@
+[submodule "libdwarf"]
+	path = libdwarf
+	url = https://github.com/0xpablo/libdwarf-code.git
+	branch = swift-dwarf-patches

@@ -1,0 +1,5 @@
+# Ignore the compiled binary (stripped)
+/TestProgram
+
+# Keep the dSYM (has debug info)
+!TestProgram.dSYM/
