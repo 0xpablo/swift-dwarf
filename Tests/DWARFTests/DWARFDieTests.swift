@@ -59,6 +59,24 @@ struct DWARFDieTests {
         }
     }
 
+    @Test
+    func addressRangesSupportsDW_FORM_sec_offset() throws {
+        guard let path = fixtureBinaryPath() else { return }
+
+        let session = try DWARFSession(path: path)
+        defer { session.close() }
+
+        for unit in session.compilationUnits() {
+            if let die = try findRangesSecOffsetDie(startingAt: unit.die) {
+                let ranges = try die.addressRanges()
+                #expect(!ranges.isEmpty, "DW_AT_ranges should decode into at least one range")
+                return
+            }
+        }
+
+        Issue.record("Fixture did not contain a DIE with DW_AT_ranges using DW_FORM_sec_offset")
+    }
+
     private func findCodeDIE(in compilationUnits: [DWARFDie]) throws -> DWARFDie? {
         for cu in compilationUnits {
             if let match = try depthFirstSearch(startingAt: cu) {
@@ -75,6 +93,24 @@ struct DWARFDieTests {
         var iterator = die.children().makeIterator()
         while let child = iterator.next() {
             if let match = try depthFirstSearch(startingAt: child) {
+                return match
+            }
+        }
+        if let error = iterator.error {
+            throw error
+        }
+        return nil
+    }
+
+    private func findRangesSecOffsetDie(startingAt die: DWARFDie) throws -> DWARFDie? {
+        if let attribute = try die.attribute(UInt16(DW_AT_ranges)),
+           Int32(attribute.form) == DW_FORM_sec_offset {
+            return die
+        }
+
+        var iterator = die.children().makeIterator()
+        while let child = iterator.next() {
+            if let match = try findRangesSecOffsetDie(startingAt: child) {
                 return match
             }
         }

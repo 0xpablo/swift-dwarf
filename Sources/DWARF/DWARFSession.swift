@@ -715,9 +715,20 @@ public final class DWARFSession {
             return nil
         }
 
+        // DW_AT_ranges can be encoded either as a section offset into .debug_rnglists
+        // (DW_FORM_sec_offset) or as an index into the rnglists table (DW_FORM_rnglistx).
+        // libdwarf expects callers to decode DW_FORM_sec_offset using dwarf_global_formref.
         var attributeValue: Dwarf_Unsigned = 0
-        guard dwarf_formudata(attributePointer, &attributeValue, &error) == DW_DLV_OK else {
-            throw DWARFError.consume(debug: handle, error: error)
+        if formValue == DW_FORM_sec_offset {
+            var offset: Dwarf_Off = 0
+            guard dwarf_global_formref(attributePointer, &offset, &error) == DW_DLV_OK else {
+                throw DWARFError.consume(debug: handle, error: error)
+            }
+            attributeValue = Dwarf_Unsigned(offset)
+        } else {
+            guard dwarf_formudata(attributePointer, &attributeValue, &error) == DW_DLV_OK else {
+                throw DWARFError.consume(debug: handle, error: error)
+            }
         }
 
         var rnglistHead: Dwarf_Rnglists_Head?
