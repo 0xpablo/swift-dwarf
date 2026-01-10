@@ -67,6 +67,53 @@ public final class DWARFDie {
         return session
     }
 
+    private func resolveReferenceAttribute(_ code: UInt16) throws -> DWARFDie? {
+        let session = try requireSession()
+        var attributePointer: Dwarf_Attribute?
+        var error: Dwarf_Error?
+        let result = dwarf_attr(raw, code, &attributePointer, &error)
+        switch result {
+        case DW_DLV_NO_ENTRY:
+            return nil
+        case DW_DLV_ERROR:
+            let handle = try session.borrowHandle()
+            throw DWARFError.consume(debug: handle, error: error)
+        default:
+            break
+        }
+
+        guard let attributePointer else { return nil }
+        let handle = try session.borrowHandle()
+        defer {
+            dwarf_dealloc(handle, UnsafeMutableRawPointer(attributePointer), Dwarf_Unsigned(DW_DLA_ATTR))
+        }
+
+        var offset: Dwarf_Off = 0
+        var isInfo: Dwarf_Bool = 0
+        guard dwarf_global_formref_b(attributePointer, &offset, &isInfo, &error) == DW_DLV_OK else {
+            return nil
+        }
+
+        var resultDie: Dwarf_Die?
+        let dieResult = dwarf_offdie_b(
+            handle,
+            offset,
+            isInfo,
+            &resultDie,
+            &error
+        )
+
+        switch dieResult {
+        case DW_DLV_OK:
+            guard let resultDie else { return nil }
+            return DWARFDie(session: session, raw: resultDie)
+        case DW_DLV_NO_ENTRY:
+            return nil
+        default:
+            throw DWARFError.consume(debug: handle, error: error)
+        }
+    }
+
     /// Returns the first child DIE if one exists.
     public func firstChild() throws -> DWARFDie? {
         let session = try requireSession()
@@ -266,36 +313,13 @@ public final class DWARFDie {
     /// Follows a DW_AT_abstract_origin reference to get the original DIE.
     /// This is commonly used for inlined subroutines to reference their original function definition.
     public func abstractOrigin() throws -> DWARFDie? {
-        let session = try requireSession()
-        guard let attr = try attribute(UInt16(DW_AT_abstract_origin)) else {
-            return nil
-        }
+        try resolveReferenceAttribute(UInt16(DW_AT_abstract_origin))
+    }
 
-        guard case .reference(let offset) = attr.value else {
-            return nil
-        }
-
-        // Get the DIE at this offset
-        var resultDie: Dwarf_Die?
-        var error: Dwarf_Error?
-        let handle = try session.borrowHandle()
-        let result = dwarf_offdie_b(
-            handle,
-            Dwarf_Off(offset),
-            1, // is_info (we're in .debug_info section)
-            &resultDie,
-            &error
-        )
-
-        switch result {
-        case DW_DLV_OK:
-            guard let resultDie else { return nil }
-            return DWARFDie(session: session, raw: resultDie)
-        case DW_DLV_NO_ENTRY:
-            return nil
-        default:
-            throw DWARFError.consume(debug: handle, error: error)
-        }
+    /// Follows a DW_AT_specification reference to get the original DIE.
+    /// This is commonly used for declarations where the name is attached to a separate DIE.
+    public func specification() throws -> DWARFDie? {
+        try resolveReferenceAttribute(UInt16(DW_AT_specification))
     }
 }
 

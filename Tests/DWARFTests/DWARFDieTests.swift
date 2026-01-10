@@ -12,6 +12,14 @@ struct DWARFDieTests {
         return dSYMURL.appendingPathComponent("Contents/Resources/DWARF/TestProgram").path
     }
 
+    private func specificationFixtureBinaryPath() -> String? {
+        guard let dSYMURL = Bundle.module.url(forResource: "SpecTestProgram", withExtension: "dSYM") else {
+            Issue.record("Could not find SpecTestProgram.dSYM test fixture")
+            return nil
+        }
+        return dSYMURL.appendingPathComponent("Contents/Resources/DWARF/SpecTestProgram").path
+    }
+
     @Test
     func decodeCompileUnitAttributes() throws {
         guard let path = fixtureBinaryPath() else { return }
@@ -77,6 +85,28 @@ struct DWARFDieTests {
         Issue.record("Fixture did not contain a DIE with DW_AT_ranges using DW_FORM_sec_offset")
     }
 
+    @Test
+    func specificationResolvesToNamedDIE() throws {
+        guard let path = specificationFixtureBinaryPath() else { return }
+
+        let session = try DWARFSession(path: path)
+        defer { session.close() }
+
+        for unit in session.compilationUnits() {
+            if let die = try findSpecificationDie(startingAt: unit.die) {
+                let spec = try die.specification()
+                #expect(spec != nil, "Expected DW_AT_specification to resolve to a DIE")
+                if let spec {
+                    let displayName = try spec.displayName()
+                    #expect(displayName != nil && !(displayName ?? "").isEmpty, "Specification DIE should have a name")
+                }
+                return
+            }
+        }
+
+        Issue.record("Fixture did not contain a DIE with DW_AT_specification")
+    }
+
     private func findCodeDIE(in compilationUnits: [DWARFDie]) throws -> DWARFDie? {
         for cu in compilationUnits {
             if let match = try depthFirstSearch(startingAt: cu) {
@@ -111,6 +141,23 @@ struct DWARFDieTests {
         var iterator = die.children().makeIterator()
         while let child = iterator.next() {
             if let match = try findRangesSecOffsetDie(startingAt: child) {
+                return match
+            }
+        }
+        if let error = iterator.error {
+            throw error
+        }
+        return nil
+    }
+
+    private func findSpecificationDie(startingAt die: DWARFDie) throws -> DWARFDie? {
+        if let _ = try die.attribute(UInt16(DW_AT_specification)) {
+            return die
+        }
+
+        var iterator = die.children().makeIterator()
+        while let child = iterator.next() {
+            if let match = try findSpecificationDie(startingAt: child) {
                 return match
             }
         }

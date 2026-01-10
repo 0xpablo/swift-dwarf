@@ -38,7 +38,8 @@ let package = Package(
             name: "DWARFTests",
             dependencies: ["DWARF"],
             resources: [
-                .copy("../Fixtures/TestProgram.dSYM")
+                .copy("../Fixtures/TestProgram.dSYM"),
+                .copy("../Fixtures/SpecTestProgram.dSYM")
             ]
         ),
         .testTarget(

@@ -35,3 +35,24 @@ The test program contains these functions at known line numbers:
 - Line 47-51: Top-level code
 
 This makes it easy to write tests that verify specific addresses map to expected functions/lines.
+
+## SpecTestProgram
+
+A small C++ program that includes out-of-line method definitions to ensure DW_AT_specification
+entries are present for testing reference resolution.
+
+### Files
+
+- `SpecTestProgram.cpp` / `SpecTestProgram.hpp` - Source code (checked into git)
+- `SpecTestProgram.dSYM/` - dSYM bundle with DWARF debug info (checked into git)
+- `SpecTestProgram` - Compiled binary (NOT checked into git, regenerate with build script)
+
+### Regenerating the Fixture
+
+```bash
+cd Tests/Fixtures
+xcrun clang++ -g -O0 -std=c++17 -c SpecTestProgram.cpp -o SpecTestProgram.o
+xcrun clang++ -g -O0 SpecTestProgram.o -o SpecTestProgram
+xcrun dsymutil SpecTestProgram -o SpecTestProgram.dSYM
+rm -f SpecTestProgram.o SpecTestProgram
+```
