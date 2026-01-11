@@ -81,6 +81,15 @@ struct DemanglerTests {
     }
 
     @Test
+    func demangleCppLeadingUnderscore() {
+        let mangled = "__ZN7rocksdb9DBOptionsD2Ev"
+        let demangled = Demangler.demangle(mangled)
+
+        #expect(demangled == "rocksdb::DBOptions::~DBOptions()")
+        #expect(demangled != mangled)
+    }
+
+    @Test
     func demangleCppStdFunction() {
         let mangled = "_ZNSt3__120__throw_length_errorB8ne180100EPKc"
         let demangled = Demangler.demangle(mangled)

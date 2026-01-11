@@ -23,9 +23,14 @@ public enum Demangler {
             }
         }
 
-        // Try C++ demangling (for symbols starting with _Z)
+        // Try C++ demangling (for symbols starting with _Z or Mach-O's leading "_" + _Z).
         if mangledName.hasPrefix("_Z") {
             if let demangled = demangleCpp(mangledName) {
+                return demangled
+            }
+        } else if mangledName.hasPrefix("__Z") {
+            let trimmed = String(mangledName.dropFirst())
+            if let demangled = demangleCpp(trimmed) {
                 return demangled
             }
         }
