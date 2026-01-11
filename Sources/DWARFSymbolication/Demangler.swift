@@ -12,6 +12,10 @@ private func _stdlib_demangleImpl(
 
 /// Utilities for demangling Swift and C++ symbol names.
 public enum Demangler {
+    private static let swiftPrivateContextRegex: NSRegularExpression? = {
+        try? NSRegularExpression(pattern: "\\.\\(([^\\)]+) in _[0-9A-Fa-f]{32}\\)")
+    }()
+
     /// Attempts to demangle a Swift or C++ mangled symbol name.
     /// Returns the demangled name, or the original name if demangling fails.
     public static func demangle(_ mangledName: String) -> String {
@@ -19,7 +23,7 @@ public enum Demangler {
         if mangledName.hasPrefix("_T") || mangledName.hasPrefix("$S") ||
            mangledName.hasPrefix("$s") || mangledName.hasPrefix("_$s") {
             if let demangled = demangleSwift(mangledName) {
-                return demangled
+                return stripSwiftPrivateContext(from: demangled)
             }
         }
 
@@ -37,6 +41,12 @@ public enum Demangler {
 
         // Return original if demangling failed
         return mangledName
+    }
+
+    static func stripSwiftPrivateContext(from name: String) -> String {
+        guard let regex = swiftPrivateContextRegex else { return name }
+        let range = NSRange(name.startIndex..<name.endIndex, in: name)
+        return regex.stringByReplacingMatches(in: name, options: [], range: range, withTemplate: ".$1")
     }
 
     /// Demangles a Swift symbol using the Swift stdlib's built-in demangler.

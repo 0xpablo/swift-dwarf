@@ -90,6 +90,14 @@ struct DemanglerTests {
     }
 
     @Test
+    func stripsSwiftPrivateContextIdentifiers() {
+        let demangled = "GNRootSplitView.RootSplitViewController.(replaceAllChildViewControllers in _AEFC54FA3FC75F82B3EB21E7C70F523F)() -> ()"
+        let cleaned = Demangler.stripSwiftPrivateContext(from: demangled)
+
+        #expect(cleaned == "GNRootSplitView.RootSplitViewController.replaceAllChildViewControllers() -> ()")
+    }
+
+    @Test
     func demangleCppStdFunction() {
         let mangled = "_ZNSt3__120__throw_length_errorB8ne180100EPKc"
         let demangled = Demangler.demangle(mangled)
