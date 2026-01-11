@@ -9,7 +9,7 @@ extension DWARFDie {
             }
         }
         if let simple = (try? name()) ?? nil {
-            return simple
+            return Demangler.stripSwiftPrivateContext(from: simple)
         }
         return "(unknown)"
     }

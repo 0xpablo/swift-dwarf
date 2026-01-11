@@ -19,6 +19,8 @@ public enum Demangler {
     /// Attempts to demangle a Swift or C++ mangled symbol name.
     /// Returns the demangled name, or the original name if demangling fails.
     public static func demangle(_ mangledName: String) -> String {
+        var demangled = mangledName
+
         // Try Swift demangling first (for symbols starting with _T, $S, $s, etc.)
         if mangledName.hasPrefix("_T") || mangledName.hasPrefix("$S") ||
            mangledName.hasPrefix("$s") || mangledName.hasPrefix("_$s") {
@@ -30,17 +32,18 @@ public enum Demangler {
         // Try C++ demangling (for symbols starting with _Z or Mach-O's leading "_" + _Z).
         if mangledName.hasPrefix("_Z") {
             if let demangled = demangleCpp(mangledName) {
-                return demangled
+                return stripSwiftPrivateContext(from: demangled)
             }
         } else if mangledName.hasPrefix("__Z") {
             let trimmed = String(mangledName.dropFirst())
             if let demangled = demangleCpp(trimmed) {
-                return demangled
+                return stripSwiftPrivateContext(from: demangled)
             }
         }
 
-        // Return original if demangling failed
-        return mangledName
+        // Return original if demangling failed, but clean private-context tags if present.
+        demangled = stripSwiftPrivateContext(from: demangled)
+        return demangled
     }
 
     static func stripSwiftPrivateContext(from name: String) -> String {
